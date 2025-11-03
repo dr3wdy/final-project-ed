@@ -15,25 +15,24 @@ if not GOOGLE_API_KEY:
 
 # === 2. Function to fetch data and predict ===
 def predict_tomorrow_price(ticker):
-    # Get last 60 days of data
     data = yf.download(ticker, period="60d", interval="1d")
-    data = data.dropna(subset=["Close"])
+    if data.empty:
+        print(f"❌ No data found for ticker '{ticker}'. Check the symbol and try again.")
+        return None
 
-    # Create numeric index for regression (like time steps)
+    # Use Adj Close instead
+    data = data.dropna(subset=["Adj Close"])
     data["t"] = np.arange(len(data))
     X = data[["t"]]
-    y = data["Close"]
+    y = data["Adj Close"]
 
-    # Train a simple linear regression
     model = LinearRegression()
     model.fit(X, y)
 
-    # Predict next day
     next_t = np.array([[len(data)]])
     predicted_price = model.predict(next_t)[0]
 
-    # Get last actual close for reference
-    last_close = data["Close"].iloc[-1]
+    last_close = data["Adj Close"].iloc[-1]
     diff = predicted_price - last_close
     pct_change = (diff / last_close) * 100
 
@@ -42,6 +41,7 @@ def predict_tomorrow_price(ticker):
     print(f"Predicted Next Close: ${predicted_price:.2f} ({pct_change:+.2f}%)")
 
     return predicted_price
+
 
 # === 3. Example run ===
 if __name__ == "__main__":
